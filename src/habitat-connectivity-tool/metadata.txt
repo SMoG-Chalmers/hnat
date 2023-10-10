@@ -1,0 +1,9 @@
+[general]
+name=Habitat Connectivity Tool
+author=Martin Fitger, Oskar Kindvall, Ioanna Stavroulaki, Meta Berghauser Pont
+qgisMinimumVersion=3.0
+description=
+about=
+version=version 0.1.1
+experimental=False
+category=Raster
