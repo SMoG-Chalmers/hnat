@@ -1,6 +1,6 @@
 @ECHO OFF
 
-set app_title=habitat-connectivity-tool
+set app_title=hnat
 set root_dir=%~dp0..
 set deploy_dir=%root_dir%\deploy
 set out_file=%root_dir%\%app_title%_%DATE%.zip
