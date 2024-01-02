@@ -1,5 +1,5 @@
 
-Habitat Connectivity Tool
+Habitat Network Analysis Tool
 Copyright (C) 2023  Martin Fitger, Oskar Kindvall, Ioanna Stavroulaki, Meta Berghauser Pont
 
 
@@ -30,7 +30,7 @@ Enabling the plugin:
 
    3. Type in 'habitat' in the search field. 
 
-   4. Mark the checkbox of the Habitat Connectivity Tool plugin (if it does not appear in the
+   4. Mark the checkbox of the Habitat Network Analysis Tool plugin (if it does not appear in the
       list make sure the installation above was done correctly).
 
-   5. Habitat Connectivity Tool will now appear in the processing toolbox.
+   5. Habitat Network Analysis Tool will now appear in the processing toolbox.

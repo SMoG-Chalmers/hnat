@@ -1,5 +1,5 @@
 [general]
-name=Habitat Connectivity Tool
+name=Habitat Network Analysis Tool
 author=Martin Fitger, Oskar Kindvall, Ioanna Stavroulaki, Meta Berghauser Pont
 qgisMinimumVersion=3.0
 description=

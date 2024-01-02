@@ -1,5 +1,5 @@
 """
-Habitat Connectivity Tool
+Habitat Network Analysis Tool
 Copyright (C) 2023  Martin Fitger, Oskar Kindvall, Ioanna Stavroulaki, Meta Berghauser Pont
 
 This program is free software: you can redistribute it and/or modify
