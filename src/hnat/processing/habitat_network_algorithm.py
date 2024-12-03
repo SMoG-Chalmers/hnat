@@ -36,6 +36,7 @@ from qgis.core import (QgsColorRampShader,
 					   QgsSingleBandPseudoColorRenderer,
 					   )
 from ..xl import OpenWorkbook
+from .utils import GetBackwardsCompatiblePath
 from qgis.utils import iface
 
 
@@ -248,7 +249,7 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 		self._layers = []
 
 	def _setOutputFolder(self, path):
-		self._outputFolder = QgsProcessingUtils.tempFolder() if 'TEMPORARY_OUTPUT' == path else path
+		self._outputFolder = self._tempFolder() if 'TEMPORARY_OUTPUT' == path else path
 
 	def _setOutputSubPath(self, subPath):
 		if subPath:
@@ -260,13 +261,19 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 	def _setOutputPrefix(self, prefix):
 		self._outputPrefix = prefix
 
+	def _tempFolder(self):
+		return QgsProcessingUtils.tempFolder()
+
+	def _getTempPath(self, fileName):
+		return os.path.join(GetBackwardsCompatiblePath(self._tempFolder()), fileName)
+
 	def _getOutputPath(self, fileName):
 		path = self._outputFolder
 		if self._outputSubPath:
 			path = os.path.join(path, self._outputSubPath)
 		if self._outputPrefix:
 			fileName = self._outputPrefix + fileName
-		return os.path.join(path, fileName)
+		return os.path.join(GetBackwardsCompatiblePath(path), fileName)
 
 	def _loadBatchParameters(self, path, feedback):
 		workbook = OpenWorkbook(path)
@@ -488,7 +495,7 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 			'max_cost': max_value / 10,
 			'null_cost': None,
 			'memory':300,
-			'output':os.path.join(QgsProcessingUtils.tempFolder(), 'cost_distance_intermediate.tif'),
+			'output':self._getTempPath('cost_distance_intermediate.tif'),
 			'nearest':'TEMPORARY_OUTPUT',
 			'outdir':'TEMPORARY_OUTPUT',
 			'GRASS_REGION_PARAMETER':None,
@@ -614,7 +621,7 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 			'RTYPE':5,  # 5=Float32
 			'OPTIONS':'',
 			'EXTRA':'',
-			'OUTPUT': os.path.join(QgsProcessingUtils.tempFolder(), 'functionality_with_null.tif'),
+			'OUTPUT': self._getTempPath('functionality_with_null.tif'),
 		}
 		feedback.pushInfo("input: " + str(raster_calc_input))
 		raster_calc_output = processing.run(
