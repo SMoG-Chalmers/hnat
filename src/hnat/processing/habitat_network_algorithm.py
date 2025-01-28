@@ -520,8 +520,10 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 		feedback.pushInfo("\nCreating cost-distance raster layer...")
 
 		max_value = math.ceil(-mean_migration_distance * math.log(dispersal_threshold))
-
 		feedback.pushInfo("Maximum cost-distance: %.0f" % (max_value))
+
+		pixel_size = self._getRasterPixelSize(source_raster)
+		feedback.pushInfo("Pixel size: %.0f" % (pixel_size))
 
 		const_distance_input = {
 			'input':friction_raster,
@@ -532,7 +534,7 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 			'start_points':None,
 			'stop_points':None,
 			'start_raster':source_raster,
-			'max_cost': max_value / 10,
+			'max_cost': max_value / pixel_size,
 			'null_cost': None,
 			'memory':300,
 			'output':self._getTempPath('cost_distance_intermediate.tif'),
@@ -570,7 +572,7 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 			'BAND_E':None,
 			'INPUT_F':None,
 			'BAND_F':None,
-			'FORMULA':'minimum(A*10, %f)' % (max_value),
+			'FORMULA':'minimum(A*%f, %f)' % (pixel_size, max_value),
 			'NO_DATA':-1,
 			'PROJWIN':None,
 			'RTYPE':5,  # 5=Float32
@@ -751,6 +753,9 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 			)
 		)
 		"""	
+
+	def _getRasterPixelSize(self, raster_layer):
+		return raster_layer.extent().width() / raster_layer.width()
 
 	def name(self):
 		return 'psteco_habitatnetwork'
