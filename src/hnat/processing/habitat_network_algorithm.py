@@ -56,17 +56,33 @@ class ParameterSet:
 	# Parameters
 	NAME_PARAM = 'Network name'
 	DISPERSAL_PARAM = 'Average dispersal distance (metres)'
-	NETWORK_THRESHOLD_PARAM = 'Network threshold'
-	PARAMS = [NAME_PARAM, DISPERSAL_PARAM, NETWORK_THRESHOLD_PARAM]
+	NETWORK_THRESHOLD_PARAM = ['Network threshold', 'Minimum dispersal probability']
+	PARAMS = [NAME_PARAM, DISPERSAL_PARAM, NETWORK_THRESHOLD_PARAM] 
 	# Columns
 	QUALITY_COLUMN = 'Quality'
-	REPRODUCTION_COLUMN = 'Reproduction'
+	SOURCE_COLUMN = ['Source', 'Reproduction']
 	FRICTION_COLUMN = 'Friction'
-	COLUMNS = [QUALITY_COLUMN, QUALITY_COLUMN, FRICTION_COLUMN]
+	COLUMNS = [QUALITY_COLUMN, SOURCE_COLUMN, FRICTION_COLUMN]
 
 	def __init__(self, parameters, columns):
 		self.parameters = parameters
 		self.columns = columns
+
+	def parameter(self, name_or_nameList):
+		names = name_or_nameList if isinstance(name_or_nameList, list) else [name_or_nameList]
+		for name in names:
+			value = self.parameters.get(name)
+			if value is not None:
+				return value
+		raise Exception("Missing parameter '%s'." % name[0])
+
+	def column(self, name_or_nameList):
+		names = name_or_nameList if isinstance(name_or_nameList, list) else [name_or_nameList]
+		for name in names:
+			column = self.columns.get(name)
+			if column is not None:
+				return column
+		raise Exception("Missing parameter set column '%s'." % name[0])
 
 
 class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
@@ -176,7 +192,7 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 			feedback.pushInfo("Loading parameters from '%s'..." % (props[self.PARAMETER_TABLE_FILE]))
 			batchParameters = self._loadBatchParameters(props[self.PARAMETER_TABLE_FILE], feedback)
 
-			feedback.pushInfo("Found %d parameter sets: %s" % (len(batchParameters.parameterSets), [parameterSet.parameters[ParameterSet.NAME_PARAM] for parameterSet in batchParameters.parameterSets]))
+			feedback.pushInfo("Found %d parameter sets: %s" % (len(batchParameters.parameterSets), [parameterSet.parameter(ParameterSet.NAME_PARAM) for parameterSet in batchParameters.parameterSets]))
 
 			for parameterSet in batchParameters.parameterSets:
 				feedback.pushInfo("parameters: " + str(parameterSet.parameters))
@@ -187,11 +203,11 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 				self._setOutputSubPath(parameterSet.parameters[ParameterSet.NAME_PARAM])
 				self._setOutputPrefix(parameterSet.parameters[ParameterSet.NAME_PARAM] + ' - ')
 
-				source_raster = self._createSourceRaster(context, 'Source Raster', props[self.BIOTOPE_RASTER], batchParameters.biotopeCodes, parameterSet.columns[ParameterSet.REPRODUCTION_COLUMN], feedback)
-				friction_raster = self._createFrictionRaster(context, 'Friction Raster', props[self.BIOTOPE_RASTER], batchParameters.biotopeCodes, parameterSet.columns[ParameterSet.FRICTION_COLUMN], feedback)
-				quality_raster = self._createQualityRaster(context, 'Quality Raster', props[self.BIOTOPE_RASTER], batchParameters.biotopeCodes, parameterSet.columns[ParameterSet.QUALITY_COLUMN], feedback)
-				costdistance_raster = self._createCostDistanceRaster(context, 'Cost-Distance Raster', source_raster, friction_raster, parameterSet.parameters[ParameterSet.DISPERSAL_PARAM], parameterSet.parameters[ParameterSet.NETWORK_THRESHOLD_PARAM], feedback)
-				dispersal_raster = self._createDispersalRaster(context, 'Dispersal Raster', costdistance_raster, parameterSet.parameters[ParameterSet.DISPERSAL_PARAM], feedback)
+				source_raster = self._createSourceRaster(context, 'Source Raster', props[self.BIOTOPE_RASTER], batchParameters.biotopeCodes, parameterSet.column(ParameterSet.SOURCE_COLUMN), feedback)
+				friction_raster = self._createFrictionRaster(context, 'Friction Raster', props[self.BIOTOPE_RASTER], batchParameters.biotopeCodes, parameterSet.column(ParameterSet.FRICTION_COLUMN), feedback)
+				quality_raster = self._createQualityRaster(context, 'Quality Raster', props[self.BIOTOPE_RASTER], batchParameters.biotopeCodes, parameterSet.column(ParameterSet.QUALITY_COLUMN), feedback)
+				costdistance_raster = self._createCostDistanceRaster(context, 'Cost-Distance Raster', source_raster, friction_raster, parameterSet.parameter(ParameterSet.DISPERSAL_PARAM), parameterSet.parameter(ParameterSet.NETWORK_THRESHOLD_PARAM), feedback)
+				dispersal_raster = self._createDispersalRaster(context, 'Dispersal Raster', costdistance_raster, parameterSet.parameter(ParameterSet.DISPERSAL_PARAM), feedback)
 				functionality_raster = self._createFunctionalityRaster(context, 'Functionality Raster', dispersal_raster, quality_raster, feedback)
 
 				self._addLayer(source_raster, self._outputSubPath)
@@ -314,9 +330,20 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 		# Read biotope codes
 		biotopeCodes = self.columnValues(rows, headerRow.index(BatchParameters.BIOTOPE_CODE_HDR), headerRowIndex + 1, len(rows) - headerRowIndex - 1)
 
-		for row_header in ParameterSet.PARAMS:
-			if row_header not in header_to_row_map:
-				raise Exception('Row header "%s" not found.' % row_header)
+		# Row headers
+		for row_header_or_headers in ParameterSet.PARAMS:
+			row = None
+			row_headers = row_header_or_headers if isinstance(row_header_or_headers, list) else [row_header_or_headers]
+			for header in row_headers:
+				row = header_to_row_map.get(header)
+				if row is not None:
+					break
+			if row is None:
+				if len(row_headers) == 1:
+					err_msg = 'Row header "%s" not found.' % row_headers[0]
+				else:
+					err_msg = 'None of the following row headers were found: "%s"' % '", "'.join(row_headers)
+				raise Exception(err_msg)
 
 		# Read parameter sets
 		parameterSets = []
@@ -337,9 +364,22 @@ class HabitatNetworkAlgorithm(QgsProcessingAlgorithm):
 				current_column_index = current_column_index + 1
 				if current_column_index >= len(name_row) or name_row[current_column_index]:
 					break
-			for column_name in ParameterSet.COLUMNS:
-				if column_name not in columns:
-					raise Exception("Column '%s' not found for network '%s'." % (column_name, parameters[ParameterSet.NAME_PARAM]))
+
+			# Verify all columns are present
+			for column_name_or_names in ParameterSet.COLUMNS:
+				column_names = column_name_or_names if isinstance(column_name_or_names, list) else [column_name_or_names]
+				column = None
+				for name in column_names:
+					column = columns.get(name)
+					if column is not None:
+						break
+				if column is None:
+					if len(column_names) == 1:
+						err_msg = 'Column "%s" not found for network "%s".' % (column_names[0], parameters[ParameterSet.NAME_PARAM])
+					else:
+						err_msg = 'None of the following columns were found for network "%s": "%s"' % (parameters[ParameterSet.NAME_PARAM], '", "'.join(column_names))
+					raise Exception(err_msg)
+
 			parameterSets.append(ParameterSet(parameters, columns))
 
 		return BatchParameters(biotopeCodes, parameterSets)
